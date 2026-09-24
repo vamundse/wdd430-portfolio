@@ -30,7 +30,7 @@ export default function About() {
             <section className="text-center">
                 <h2 className="text-3xl font-bold mb-4"> About Me</h2>
                 <p className="text-lg text-gray-700">
-                This about page shares more information about my background and work experience.
+                I am a former educator with a strong desire to become a full-stack software developer.
                 </p>
             </section>
             <section className="text-center py-12">
