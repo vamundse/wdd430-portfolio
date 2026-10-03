@@ -2,8 +2,10 @@
 
 import { z } from 'zod';
 import { sql } from '@vercel/postgres';
-import {revalidatePath} from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { auth, signIn } from "@/auth";
+import { AuthError } from 'next-auth';
 
 const currentYear = new Date().getFullYear();
 
@@ -29,6 +31,8 @@ export type State = {
 };
 
 export async function createProject(previousState: State, formData: FormData): Promise<State> {
+    await requireOwnerSession();
+    
     const validatedFields = ProjectFormSchema.safeParse ({
         title: formData.get('title'),
         description: formData.get('description'),
@@ -64,6 +68,8 @@ export async function createProject(previousState: State, formData: FormData): P
 }
 
 export async function updateProject(id: string, formData: FormData) {
+    await requireOwnerSession();
+    
     if (!id) {
         throw new Error('Invalid project ID');
     }
@@ -101,6 +107,8 @@ export async function updateProject(id: string, formData: FormData) {
 }
 
 export async function deleteProject(formData: FormData) {
+    await requireOwnerSession();
+    
     const id = formData.get('id');
     
     if (typeof id !== 'string') {
@@ -119,4 +127,29 @@ export async function deleteProject(formData: FormData) {
 
     revalidatePath('/projects');
     redirect('/projects');
+}
+
+async function requireOwnerSession() {
+    const session = await auth();
+    if (!session?.user) throw new Error('Not authenticated');
+    return session;
+}
+
+export async function authenticate(
+    prevState: string | undefined,
+    formData: FormData,
+) {
+    try {
+        await signIn('credentials', formData);
+    } catch ( error) {
+        if (error instanceof AuthError) {
+            switch (error.type) {
+                case 'CredentialsSignin':
+                    return 'Invalid email or password';
+                    default:
+                        return ' Something went wrong';
+            }
+        }
+        throw error;
+    }
 }
